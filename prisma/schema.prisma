@@ -7,45 +7,41 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── USERS & ROLES ───────────────────────────────────────────────────────────
-
 enum Role {
-  SHIPPER    // Chủ hàng / chủ đơn hàng
-  CARRIER    // Nhà vận tải
+  SHIPPER
+  CARRIER
   ADMIN
 }
 
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
+  id            String         @id @default(cuid())
+  email         String         @unique
   phone         String?
-  phoneVerified Boolean  @default(false)
+  phoneVerified Boolean        @default(false)
   zaloId        String?
   passwordHash  String
   role          Role
   name          String
   companyName   String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
-  carrier     Carrier?
-  orders      Order[]       @relation("ShipperOrders")
-  matchesAsCarrier Match[]  @relation("CarrierMatches")
-  notifications Notification[]
+  carrier          Carrier?
+  orders           Order[]        @relation("ShipperOrders")
+  matchesAsCarrier Match[]        @relation("CarrierMatches")
+  notifications    Notification[]
 }
 
-// ─── CARRIER PROFILE ─────────────────────────────────────────────────────────
-
 model Carrier {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id])
-  fleetSize   Int      @default(0)
-  rating      Float    @default(0)
-  totalTrips  Int      @default(0)
-  verified    Boolean  @default(false)
-  vehicles    Vehicle[]
-  matches     Match[]
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  user       User      @relation(fields: [userId], references: [id])
+  fleetSize  Int       @default(0)
+  rating     Float     @default(0)
+  totalTrips Int       @default(0)
+  verified   Boolean   @default(false)
+  vehicles   Vehicle[]
+  matches    Match[]
 }
 
 model Vehicle {
@@ -54,85 +50,81 @@ model Vehicle {
   carrier       Carrier       @relation(fields: [carrierId], references: [id])
   plateNumber   String        @unique
   containerType ContainerType
-  maxWeight     Float         // tấn
+  maxWeight     Float
   available     Boolean       @default(true)
 }
 
-// ─── ORDERS ──────────────────────────────────────────────────────────────────
-
 enum ContainerType {
-  TWENTY_FT     // 20ft
-  FORTY_FT      // 40ft
-  FORTY_HC      // 40ft High Cube
+  TWENTY_FT
+  FORTY_FT
+  FORTY_HC
 }
 
 enum OrderStatus {
-  OPEN          // Đang tìm xe
-  MATCHED       // Đã match, chờ xác nhận
-  CONFIRMED     // Đã xác nhận 2 bên
-  IN_TRANSIT    // Đang vận chuyển
-  COMPLETED     // Hoàn thành
+  OPEN
+  MATCHED
+  CONFIRMED
+  IN_TRANSIT
+  COMPLETED
   CANCELLED
 }
 
 model Order {
-  id              String        @id @default(cuid())
-  shipperId       String
-  shipper         User          @relation("ShipperOrders", fields: [shipperId], references: [id])
+  id            String        @id @default(cuid())
+  shipperId     String
+  shipper       User          @relation("ShipperOrders", fields: [shipperId], references: [id])
 
-  fromLocation    String
-  fromLat         Float?
-  fromLng         Float?
-  toLocation      String
-  toLat           Float?
-  toLng           Float?
+  fromLocation  String
+  fromLat       Float?
+  fromLng       Float?
+  toLocation    String
+  toLat         Float?
+  toLng         Float?
 
-  containerType   ContainerType
-  weightTon       Float
-  cargoType       String
-  cargoDesc       String?
+  containerType ContainerType
+  weightTon     Float
+  cargoType     String
+  cargoDesc     String?
 
-  pickupAt        DateTime
-  deliverBy       DateTime?
+  pickupAt      DateTime
+  deliverBy     DateTime?
 
-  priceOffer      Float?        // Giá chủ hàng đề xuất (VND)
-  status          OrderStatus   @default(OPEN)
+  priceOffer    Float?
+  status        OrderStatus   @default(OPEN)
 
-  // Thông tin liên hệ hiển thị sau khi match
-  contactPhone    String
-  contactZalo     String?
+  contactPhone  String
+  contactZalo   String?
 
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  matches         Match[]
+  matches       Match[]
 }
 
-// ─── MATCHING ────────────────────────────────────────────────────────────────
-
 enum MatchStatus {
-  PENDING       // Carrier đã gửi request, chờ shipper xác nhận
-  SHIPPER_CONFIRMED  // Shipper đồng ý, chờ carrier xác nhận lần cuối
-  CONFIRMED     // Cả 2 đã xác nhận — liên lạc được chia sẻ
+  PENDING
+  SHIPPER_CONFIRMED
+  CONFIRMED
   REJECTED
   CANCELLED
 }
 
 model Match {
-  id          String      @id @default(cuid())
-  orderId     String
-  order       Order       @relation(fields: [orderId], references: [id])
+  id            String      @id @default(cuid())
+  orderId       String
+  order         Order       @relation(fields: [orderId], references: [id])
 
-  carrierId   String
-  carrier     Carrier     @relation(fields: [carrierId], references: [id])
-  carrierUser User        @relation("CarrierMatches", fields: [carrierId], references: [id])
+  carrierId     String
+  carrier       Carrier     @relation(fields: [carrierId], references: [id])
 
-  // Chuyến quay đầu (nếu có)
-  returnOrderId String?   // ID đơn hàng chiều về mà carrier muốn ghép
-  estimatedSaving Float?  // Tiết kiệm ước tính (VND)
+  // Dùng field riêng để tránh trùng constraint với carrierId
+  carrierUserId String
+  carrierUser   User        @relation("CarrierMatches", fields: [carrierUserId], references: [id])
 
-  priceOffer  Float?      // Carrier đề xuất giá
-  note        String?     // Ghi chú từ carrier
+  returnOrderId   String?
+  estimatedSaving Float?
+  priceOffer      Float?
+  note            String?
 
   status      MatchStatus @default(PENDING)
   confirmedAt DateTime?
@@ -143,16 +135,14 @@ model Match {
   @@unique([orderId, carrierId])
 }
 
-// ─── NOTIFICATIONS ────────────────────────────────────────────────────────────
-
 model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id])
-  type      String   // MATCH_REQUEST | MATCH_CONFIRMED | ORDER_CANCELLED ...
+  type      String
   title     String
   body      String
   read      Boolean  @default(false)
-  refId     String?  // orderId hoặc matchId liên quan
+  refId     String?
   createdAt DateTime @default(now())
 }

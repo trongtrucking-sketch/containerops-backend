@@ -39,7 +39,7 @@ router.post(
     }
 
     const match = await prisma.match.create({
-      data: { orderId, carrierId, returnOrderId, priceOffer, note, estimatedSaving },
+      data: { orderId, carrierId, carrierUserId: req.user.id, returnOrderId, priceOffer, note, estimatedSaving },
       include: {
         carrier: {
           include: { user: { select: { name: true, companyName: true, phone: true } } }
